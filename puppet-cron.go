@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/sys/unix"
 	"io"
 	"io/ioutil"
 	"log"
@@ -129,8 +130,16 @@ func obtainLock() {
 	// Do not close the file; we want to keep the lock active until puppet has
 	// finished running.
 
-	err = syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
-	if err == syscall.EWOULDBLOCK {
+	// unix.Flock is not supported on Solaris. This call does not block.
+	lock := unix.Flock_t{
+		Type:   unix.F_WRLCK,
+		Whence: 0, // There's no constant for this
+		Start:  0,
+		Len:    0, // to end of file
+	}
+	err = unix.FcntlFlock(uintptr(file.Fd()), unix.F_SETLK, &lock)
+	if err == unix.EAGAIN {
+		// Another process has the lock
 		scanner := bufio.NewScanner(file)
 		scanner.Scan()
 		if err := scanner.Err(); err != nil {
