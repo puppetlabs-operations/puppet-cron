@@ -1,19 +1,15 @@
 package main
 
 import (
-	"bufio"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"golang.org/x/sys/unix"
-	"io"
+	"github.com/danielparks/lockfile"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -111,65 +107,8 @@ func isValidEnvironment(environment string) bool {
 	return true
 }
 
-func obtainLock() {
-	err := os.MkdirAll(filepath.Dir(LockPath), os.FileMode(0755))
-	if err != nil {
-		log.Panic(err)
-	}
-
-	// This has to be 0600 so that a non-priviledged user can't deny access.
-	file, err := os.OpenFile(LockPath, os.O_RDWR|os.O_CREATE, os.FileMode(0600))
-	if err != nil {
-		log.Panic(err)
-	}
-
-	// Do not close the file; we want to keep the lock active until puppet has
-	// finished running.
-
-	// unix.Flock is not supported on Solaris. This call does not block.
-	lock := unix.Flock_t{
-		Type:   unix.F_WRLCK,
-		Whence: 0, // There's no constant for this
-		Start:  0,
-		Len:    0, // to end of file
-	}
-	err = unix.FcntlFlock(uintptr(file.Fd()), unix.F_SETLK, &lock)
-	if err == unix.EAGAIN {
-		// Another process has the lock
-		scanner := bufio.NewScanner(file)
-		scanner.Scan()
-		if err := scanner.Err(); err != nil {
-			log.Fatal("Another process is running. Could not read PID from lock file: " + err.Error())
-		}
-		log.Fatal("puppet-cron.py is already running with pid " + scanner.Text())
-	} else if err != nil {
-		log.Panic(err)
-	}
-
-	_, err = file.Seek(io.SeekStart, 0)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	writer := bufio.NewWriter(file)
-	_, err = writer.WriteString(strconv.Itoa(os.Getpid()) + `
-
-puppet-cron does not delete this file on completion, so the PID above may no
-longer represent a puppet-cron process. puppet-cron uses flock, so the lock is
-automatically released on process exit.
-`)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	err = writer.Flush()
-	if err != nil {
-		log.Panic(err)
-	}
-}
-
 func main() {
-	obtainLock()
+	lockfile.ObtainLock(LockPath)
 
 	environment := puppetConfigSectionGet("agent", "environment")
 
