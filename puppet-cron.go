@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"golang.org/x/sys/unix"
 	"io"
@@ -89,30 +88,27 @@ func httpClient() *http.Client {
 func isValidEnvironment(environment string) bool {
 	server := puppetConfigSectionGet("agent", "server")
 	port := puppetConfigSectionGet("agent", "masterport")
-	client := httpClient()
 
-	url := fmt.Sprintf("https://%s:%s/puppet/v3/environments", server, port)
-	response, err := client.Get(url)
+	url := fmt.Sprintf("https://%s:%s/puppet/v3/status/test?environment=%s", server, port, environment)
+	request, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	request.Header.Set("Accept", "application/json")
+
+	response, err := httpClient().Do(request)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		log.Fatal(err)
+	if response.StatusCode == 404 {
+		return false
+	} else if response.StatusCode < 200 || response.StatusCode >= 300 {
+		log.Printf("Unexpected status %q checking environment %q. Keeping environment.", response.Status, environment)
 	}
 
-	var object map[string]interface{}
-	err = json.Unmarshal(body, &object)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	validEnvironments := object["environments"].(map[string]interface{})
-	_, ok := validEnvironments[environment]
-
-	return ok
+	return true
 }
 
 func obtainLock() {
