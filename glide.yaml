@@ -1,3 +1,5 @@
-package: puppet-cron
+package: github.com/puppetlabs-operations/puppet-cron
+homepage: https://github.com/puppetlabs-operations/puppet-cron
+license: MIT
 import:
 - package: github.com/danielparks/lockfile
