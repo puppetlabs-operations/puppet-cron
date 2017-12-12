@@ -1,5 +1,5 @@
-hash: cf0f7713fbeef767134ff6e97f8215ac282b160e7107b7e75ed214028b8d84e4
-updated: 2017-12-10T20:03:14.023914-08:00
+hash: a14d9e5bb2d1c6d5d51fff646f4b31ef62945e1cc6fedd06bcd341d800c7224a
+updated: 2017-12-11T19:04:53.924234-08:00
 imports:
 - name: github.com/danielparks/lockfile
   version: 6452ff27e1aac770dc15e5822aa6e12596cca7fe
