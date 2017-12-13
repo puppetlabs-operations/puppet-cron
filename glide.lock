@@ -1,0 +1,10 @@
+hash: a14d9e5bb2d1c6d5d51fff646f4b31ef62945e1cc6fedd06bcd341d800c7224a
+updated: 2017-12-11T19:04:53.924234-08:00
+imports:
+- name: github.com/danielparks/lockfile
+  version: 6452ff27e1aac770dc15e5822aa6e12596cca7fe
+- name: golang.org/x/sys
+  version: b8f5ef32195cae6470b728e8ca677f0dbed1a004
+  subpackages:
+  - unix
+testImports: []
