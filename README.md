@@ -30,7 +30,7 @@ macOS, and Solaris.
 
 ### Build
 
-  * A recent version of [Go] (1.9 will work; 1.7 might work)
+  * [Go] (1.9 will work; 1.7 might work)
   * [Glide]
 
 Glide will install:
