@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/danielparks/lockfile"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -13,12 +12,17 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/danielparks/lockfile"
 )
 
 const Puppet = "/opt/puppetlabs/bin/puppet"
 const LockPath = "/var/run/puppet-cron.lock"
 
-func puppetConfigSectionGet(section string, key string) string {
+// We use `puppet config` to get and set values in
+// /etc/puppetlabs/puppet/puppet.conf. We don't touch it directly at all.
+
+func puppetConfigGet(section string, key string) string {
 	args := []string{"config", "print"}
 
 	if section != "" {
@@ -34,10 +38,6 @@ func puppetConfigSectionGet(section string, key string) string {
 	return string(output[:len(output)-1])
 }
 
-func puppetConfigGet(key string) string {
-	return puppetConfigSectionGet("", key)
-}
-
 func puppetConfigSectionSet(section string, key string, value string) {
 	args := []string{"config", "set", "--section", section, key, value}
 
@@ -47,9 +47,11 @@ func puppetConfigSectionSet(section string, key string, value string) {
 	}
 }
 
+// Create an http.Client that recognizes the Puppet CA, and authenticates with
+// node's certificate.
 func httpClient() *http.Client {
-	certname := puppetConfigGet("certname")
-	ssldir := puppetConfigGet("ssldir")
+	certname := puppetConfigGet("", "certname")
+	ssldir := puppetConfigGet("", "ssldir")
 
 	clientCertPath := fmt.Sprintf("%s/certs/%s.pem", ssldir, certname)
 	clientKeyPath := fmt.Sprintf("%s/private_keys/%s.pem", ssldir, certname)
@@ -81,9 +83,10 @@ func httpClient() *http.Client {
 	}
 }
 
+// Check that the agent-configured environment still exists on the master.
 func isValidEnvironment(environment string) bool {
-	server := puppetConfigSectionGet("agent", "server")
-	port := puppetConfigSectionGet("agent", "masterport")
+	server := puppetConfigGet("agent", "server")
+	port := puppetConfigGet("agent", "masterport")
 
 	url := fmt.Sprintf("https://%s:%s/puppet/v3/status/test?environment=%s", server, port, environment)
 	request, err := http.NewRequest("GET", url, nil)
@@ -110,7 +113,7 @@ func isValidEnvironment(environment string) bool {
 func main() {
 	lockfile.ObtainLock(LockPath)
 
-	environment := puppetConfigSectionGet("agent", "environment")
+	environment := puppetConfigGet("agent", "environment")
 
 	if environment == "" || !isValidEnvironment(environment) {
 		log.Printf("Environment %q is invalid; resetting", environment)
