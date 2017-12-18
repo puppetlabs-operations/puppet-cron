@@ -1,2 +1,5 @@
 /puppet-cron
 /vendor
+/output
+/vanagon_hosts.log
+/ext
