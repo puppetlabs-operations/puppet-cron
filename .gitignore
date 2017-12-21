@@ -1,5 +1,12 @@
 /puppet-cron
-/vendor
-/output
+
+# Glide
+/vendor/
+
+# build.sh
+/builds/
+
+# Vanagon
 /vanagon_hosts.log
-/ext
+/ext/
+/output/
