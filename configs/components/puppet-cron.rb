@@ -1,8 +1,4 @@
 component "puppet-cron" do |pkg, settings, platform|
-  pkg.version "1.0.0"
-  pkg.url = "git@github.com:puppetlabs-operations/puppet-cron.git"
-  pkg.license "MIT"
-
   # Figure out URL to download Go from
   arch = platform.architecture
   if arch == "i386"
@@ -17,26 +13,19 @@ component "puppet-cron" do |pkg, settings, platform|
     os = platform.os_name
   end
 
-  go_url = "https://redirector.gvt1.com/edgedl/go/go1.9.2.#{os}-#{arch}.tar.gz"
+  pkg.version settings[:git_version]
+  pkg.url settings[:working_dir]
+  pkg.license "MIT"
 
-  # Actual build stuff
-  pkg.configure do
-    [
-      "curl -sSL #{go_url} | tar -C /usr/local -xzf -",
-      "for p in /usr/local/go/bin/* ; do ln -s $p /usr/bin ; done",
-      "curl -sSL https://glide.sh/get | sh",
-      "glide install",
-    ]
-  end
+  # There is a bug (I think) in Vanagon that prevents using a local file as the
+  # primary source (url) of a component. I set the URL to the local repo
+  # (because it has to be set to something, and it might as well be something
+  # local), then I add the build tarball as second source.
+  pkg.add_source(File.join(settings[:working_dir], "builds/#{os}-#{arch}/build.tar.gz"))
 
-  pkg.build do
-    ["go build"]
-  end
+  pkg.directory settings[:bindir]
 
-  pkg.install do
-    [
-      "mkdir -p #{settings[:bindir]}",
-      "cp puppet-cron #{settings[:bindir]}/"
-    ]
-  end
+  # The build tarball unpacks in the parent directory.
+  pkg.install_file "../build/puppet-cron", File.join(settings[:bindir], "puppet-cron"),
+    mode: "0755"
 end
