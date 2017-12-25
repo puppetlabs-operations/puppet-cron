@@ -24,7 +24,7 @@ mkdir "$GOPATH/pkg"
 
 export PATH="$GOPATH/bin:$PATH"
 
-curl https://glide.sh/get | sh
+curl -sS https://glide.sh/get | sh
 
 package="$(grep '^package: ' glide.yaml | cut -f 2- -d ' ')"
 
