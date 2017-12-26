@@ -4,8 +4,15 @@ set -e
 
 bundle install --deployment
 
-for p in configs/platforms/*.rb ; do
-  platform=$(basename ${p%.rb})
-  echo Packaging for platform
-  bundle exec build puppet-cron "${platform}"
+for a in configs/projects/*.rb ; do
+  project=$(basename ${a%.rb})
+
+  for p in configs/platforms/*.rb ; do
+    platform=$(basename ${p%.rb})
+    echo
+    echo ======================================================================
+    echo Packaging $project for $platform
+    echo ======================================================================
+    bundle exec build "${project}" "${platform}"
+  done
 done
