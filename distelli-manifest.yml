@@ -1,0 +1,6 @@
+infracore/puppet-cron:
+  Build:
+    - ./build.sh
+    - ./package.sh
+  PkgInclude:
+    - output
