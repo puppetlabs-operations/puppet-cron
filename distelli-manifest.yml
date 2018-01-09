@@ -3,4 +3,4 @@ infracore/puppet-cron:
     - ./build.sh
     - ./package.sh
   PkgInclude:
-    - output
+    - output/
