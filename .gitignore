@@ -1,4 +1,5 @@
 /puppet-cron
+/.bundle/
 
 # Glide
 /vendor/
