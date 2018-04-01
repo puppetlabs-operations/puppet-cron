@@ -23,13 +23,8 @@ const LockPath = "/var/run/puppet-cron.lock"
 // /etc/puppetlabs/puppet/puppet.conf. We don't touch it directly at all.
 
 func puppetConfigGet(section string, key string) string {
-	args := []string{"config", "print"}
+	args := []string{"config", "print", "--section", section, key}
 
-	if section != "" {
-		args = append(args, "--section", section)
-	}
-
-	args = append(args, key)
 	output, err := exec.Command(Puppet, args...).Output()
 	if err != nil {
 		log.Fatalf("Failed: %s %s", Puppet, strings.Join(args, " "))
@@ -38,7 +33,7 @@ func puppetConfigGet(section string, key string) string {
 	return string(output[:len(output)-1])
 }
 
-func puppetConfigSectionSet(section string, key string, value string) {
+func puppetConfigSet(section string, key string, value string) {
 	args := []string{"config", "set", "--section", section, key, value}
 
 	_, err := exec.Command(Puppet, args...).Output()
@@ -50,8 +45,8 @@ func puppetConfigSectionSet(section string, key string, value string) {
 // Create an http.Client that recognizes the Puppet CA, and authenticates with
 // node's certificate.
 func httpClient() *http.Client {
-	certname := puppetConfigGet("", "certname")
-	ssldir := puppetConfigGet("", "ssldir")
+	certname := puppetConfigGet("agent", "certname")
+	ssldir := puppetConfigGet("main", "ssldir")
 
 	clientCertPath := fmt.Sprintf("%s/certs/%s.pem", ssldir, certname)
 	clientKeyPath := fmt.Sprintf("%s/private_keys/%s.pem", ssldir, certname)
@@ -117,7 +112,7 @@ func main() {
 
 	if environment == "" || !isValidEnvironment(environment) {
 		log.Printf("Environment %q is invalid; resetting", environment)
-		puppetConfigSectionSet("agent", "environment", "production")
+		puppetConfigSet("agent", "environment", "production")
 	}
 
 	err := syscall.Exec(Puppet, []string{"puppet", "agent", "--no-daemonize", "--onetime"}, os.Environ())
