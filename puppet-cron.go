@@ -105,8 +105,30 @@ func isValidEnvironment(environment string) bool {
 	return true
 }
 
+func setPATH() {
+	paths := []string{
+		"/usr/local/sbin",
+		"/usr/local/bin",
+		"/usr/sbin",
+		"/usr/bin",
+		"/sbin",
+		"/bin",
+		"/opt/puppetlabs/bin",
+	}
+
+	if os.Getenv("PATH") != "" {
+		paths = append(paths, os.Getenv("PATH"))
+	}
+
+	os.Setenv("PATH", strings.Join(paths, ":"))
+}
+
 func main() {
 	lockfile.ObtainLock(LockPath)
+
+	// Sometimes facts require PATH to be set reasonably. Since this is run from
+	// cron, that won't always be the case.
+	setPATH()
 
 	environment := puppetConfigGet("agent", "environment")
 
