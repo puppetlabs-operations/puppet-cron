@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Build for the platforms we care about. Sets up a clean GOPATH to build in.
 
