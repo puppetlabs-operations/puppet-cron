@@ -2,6 +2,9 @@
 
 set -e
 
+# PATH doesn't seem to include /usr/local/bin by default
+export PATH="/usr/local/bin:$PATH"
+
 bundle install --deployment
 
 for a in configs/projects/*.rb ; do

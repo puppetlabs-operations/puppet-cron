@@ -22,7 +22,9 @@ mkdir "$GOPATH/src"
 mkdir "$GOPATH/bin"
 mkdir "$GOPATH/pkg"
 
-export PATH="$GOPATH/bin:$PATH"
+# PATH doesn't seem to include /usr/local/bin by default
+echo PATH=$PATH
+export PATH="$GOPATH/bin:/usr/local/bin:$PATH"
 
 curl -sS https://glide.sh/get | sh
 
