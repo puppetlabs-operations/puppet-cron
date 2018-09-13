@@ -3,7 +3,7 @@
 set -e
 
 # PATH doesn't seem to include /usr/local/bin by default
-export PATH="/usr/local/bin:$PATH"
+export PATH="$PATH:/usr/local/bin"
 
 bundle install --deployment
 
