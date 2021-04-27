@@ -80,7 +80,7 @@ func isValidEnvironment(environment string) bool {
 	server := puppetConfigGet("agent", "server")
 	port := puppetConfigGet("agent", "masterport")
 
-	url := fmt.Sprintf("https://%s:%s/puppet/v3/status/test?environment=%s", server, port, environment)
+	url := fmt.Sprintf("https://%s:%s/puppet/v3/file_metadatas/plugins?environment=%s", server, port, environment)
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Panic(err)
