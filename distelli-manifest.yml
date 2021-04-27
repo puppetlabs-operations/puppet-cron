@@ -1,9 +1,0 @@
-infracore/puppet-cron:
-  Build:
-    - export VANAGON_SSH_KEY=/home/distelli/.ssh/vmpooler_rsa
-    - ./build.sh
-    - ./package.sh
-  AfterBuildSuccess:
-    - ./deploy-packages.sh
-  PkgInclude:
-    - output/
