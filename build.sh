@@ -1,49 +1,27 @@
-#!/bin/bash
-
-# Build for the platforms we care about. Sets up a clean GOPATH to build in.
+#!/usr/bin/env bash
 
 set -e
 
-build () {
-  export GOOS=$1
-  export GOARCH=$2
-  echo "Building $GOOS-$GOARCH"
-  mkdir -p "builds/$GOOS-$GOARCH/build"
-  go build -o "builds/$GOOS-$GOARCH/build/puppet-cron"
+release_path="$(pwd)/.release"
+repo_name="$(grep '^module' go.mod |cut -d ' ' -f2 |rev |cut -d '/' -f1 |rev)"
+targets=${@-"aix/ppc64 darwin/amd64 darwin/arm64 linux/amd64 linux/386 solaris/amd64 windows/amd64 windows/386"}
 
-  # Vanagon needs an archive rather than a plain file.
-  (cd "builds/$GOOS-$GOARCH" && tar -czf build.tar.gz build)
-}
+echo "----> Setting up Go repository"
+rm -rf ${release_path}
+mkdir -p ${release_path}
 
-export GOPATH="$(mktemp -d)"
-echo "Building under $GOPATH"
+for target in $targets; do
+  os="$(echo $target | cut -d '/' -f1)"
+  arch="$(echo $target | cut -d '/' -f2)"
+  output="${release_path}/${repo_name}_${os}_${arch}"
 
-mkdir "$GOPATH/src"
-mkdir "$GOPATH/bin"
-mkdir "$GOPATH/pkg"
+  echo "----> Building project for: $target"
+  GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -o $output
 
-# PATH doesn't seem to include /usr/local/bin by default
-echo PATH=$PATH
-export PATH="$GOPATH/bin:$PATH:/usr/local/bin"
+  zip -j $output.zip $output > /dev/null 2>&1
+  tar -czvf $output.tgz $output > /dev/null 2>&1
+done
 
-curl -sS https://glide.sh/get | sh
-
-package="$(grep '^package: ' glide.yaml | cut -f 2- -d ' ')"
-
-mkdir -p "$GOPATH/src/$(dirname "$package")"
-ln -s "$(pwd)" "$GOPATH/src/${package}"
-
-cd "$GOPATH/src/${package}"
-
-rm -Rf builds
-
-glide install
-
-build darwin amd64
-build linux amd64
-build linux 386
-build solaris amd64
-
-cd
-echo "Deleting $GOPATH"
-rm -Rf "$GOPATH"
+echo "----> Build is complete. List of files at $release_path:"
+cd $release_path
+ls -al
