@@ -9,22 +9,30 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
 )
 
-const Puppet = "/opt/puppetlabs/bin/puppet"
+func getPuppetPath() string {
+	if runtime.GOOS == "windows" {
+		return string("C:/Program Files/Puppet Labs/Puppet/bin/puppet.bat")
+	} else {
+		return string("/opt/puppetlabs/bin/puppet")
+	}
+}
 
 // We use `puppet config` to get and set values in
 // /etc/puppetlabs/puppet/puppet.conf. We don't touch it directly at all.
 
 func puppetConfigGet(section string, key string) string {
 	args := []string{"config", "print", "--section", section, key}
+	puppetBinary := getPuppetPath()
 
-	output, err := exec.Command(Puppet, args...).Output()
+	output, err := exec.Command(puppetBinary, args...).Output()
 	if err != nil {
-		log.Fatalf("Failed: %s %s", Puppet, strings.Join(args, " "))
+		log.Fatalf("Failed: %s %s", puppetBinary, strings.Join(args, " "))
 	}
 
 	return string(output[:len(output)-1])
@@ -32,10 +40,11 @@ func puppetConfigGet(section string, key string) string {
 
 func puppetConfigSet(section string, key string, value string) {
 	args := []string{"config", "set", "--section", section, key, value}
+	puppetBinary := getPuppetPath()
 
-	_, err := exec.Command(Puppet, args...).Output()
+	_, err := exec.Command(puppetBinary, args...).Output()
 	if err != nil {
-		log.Fatalf("Failed: %s %s", Puppet, strings.Join(args, " "))
+		log.Fatalf("Failed: %s %s", puppetBinary, strings.Join(args, " "))
 	}
 }
 
@@ -104,13 +113,14 @@ func isValidEnvironment(environment string) bool {
 
 func main() {
 	environment := puppetConfigGet("agent", "environment")
+	puppetBinary := getPuppetPath()
 
 	if environment == "" || !isValidEnvironment(environment) {
 		log.Printf("Environment %q is invalid; resetting", environment)
 		puppetConfigSet("agent", "environment", "production")
 	}
 
-	err := syscall.Exec(Puppet, []string{"puppet", "agent", "--no-daemonize", "--onetime"}, os.Environ())
+	err := syscall.Exec(puppetBinary, []string{"puppet", "agent", "--no-daemonize", "--onetime"}, os.Environ())
 	if err != nil {
 		log.Fatal(err)
 	} else {
