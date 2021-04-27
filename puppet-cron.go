@@ -89,6 +89,8 @@ func isValidEnvironment(environment string) bool {
 	server := puppetConfigGet("agent", "server")
 	port := puppetConfigGet("agent", "masterport")
 
+	log.Printf("Checking if environment '%s' exists on '%s'", environment, server)
+
 	url := fmt.Sprintf("https://%s:%s/puppet/v3/file_metadatas/plugins?environment=%s", server, port, environment)
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -120,6 +122,7 @@ func main() {
 		puppetConfigSet("agent", "environment", "production")
 	}
 
+	log.Print("starting puppet run...")
 	err := syscall.Exec(puppetBinary, []string{"puppet", "agent", "--no-daemonize", "--onetime"}, os.Environ())
 	if err != nil {
 		log.Fatal(err)
