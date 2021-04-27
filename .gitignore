@@ -1,7 +1,5 @@
 /puppet-cron
 
-# Glide
-/vendor/
 
 # build.sh
 /builds/
