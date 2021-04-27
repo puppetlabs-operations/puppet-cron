@@ -1,6 +1,2 @@
-/puppet-cron
-
-
 # build.sh
-/builds/
-
+/.release/
