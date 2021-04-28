@@ -13,7 +13,12 @@ mkdir -p ${release_path}
 for target in $targets; do
   os="$(echo $target | cut -d '/' -f1)"
   arch="$(echo $target | cut -d '/' -f2)"
-  output="${release_path}/${repo_name}_${os}_${arch}"
+
+  if [ "$os" = "windows" ]; then
+    output="${release_path}/${repo_name}_${os}_${arch}.exe"
+  else
+    output="${release_path}/${repo_name}_${os}_${arch}"
+  fi
 
   echo "----> Building project for: $target"
   GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -o $output
