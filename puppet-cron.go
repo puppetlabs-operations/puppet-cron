@@ -9,34 +9,57 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
-	"syscall"
 	"time"
 )
 
-const Puppet = "/opt/puppetlabs/bin/puppet"
+// Call the installed version of Puppet with a given set of arguments.
+// It returns the output to the calling function as a byte array.
+func callPuppet(puppetArgs []string) []byte {
+	paths := []string{}
 
-// We use `puppet config` to get and set values in
-// /etc/puppetlabs/puppet/puppet.conf. We don't touch it directly at all.
-
-func puppetConfigGet(section string, key string) string {
-	args := []string{"config", "print", "--section", section, key}
-
-	output, err := exec.Command(Puppet, args...).Output()
-	if err != nil {
-		log.Fatalf("Failed: %s %s", Puppet, strings.Join(args, " "))
+	if os.Getenv("PATH") != "" {
+		paths = append(paths, os.Getenv("PATH"))
 	}
 
-	return string(output[:len(output)-1])
+	if runtime.GOOS == "windows" {
+		defaultPuppetLocation := string("C:\\Program Files\\Puppet Labs\\Puppet\\bin")
+		paths = append(paths, defaultPuppetLocation)
+		os.Setenv("PATH", strings.Join(paths, ";"))
+	} else {
+		defaultPuppetLocation := string("/opt/puppetlabs/bin")
+		paths = append(paths, defaultPuppetLocation)
+		os.Setenv("PATH", strings.Join(paths, ":"))
+	}
+
+	output, err := exec.Command("puppet", puppetArgs...).Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return output
 }
 
+// Use `puppet config print` to retrieve the value of a given key
+// from a given section of puppet.conf.
+// The value is returned as a string to the callling function.
+func puppetConfigGet(section string, key string) string {
+	args := []string{"config", "print", "--section", section, key}
+	output := callPuppet(args)
+
+	value := string(output[:len(output)-1])
+	value = strings.ReplaceAll(value, "\r", "")
+	value = strings.ReplaceAll(value, "\n", "")
+	return value
+}
+
+// use `puppet config set` to set the value of a given key in a given
+// section of puppet.conf
 func puppetConfigSet(section string, key string, value string) {
 	args := []string{"config", "set", "--section", section, key, value}
 
-	_, err := exec.Command(Puppet, args...).Output()
-	if err != nil {
-		log.Fatalf("Failed: %s %s", Puppet, strings.Join(args, " "))
-	}
+	callPuppet(args)
 }
 
 // Create an http.Client that recognizes the Puppet CA, and authenticates with
@@ -80,7 +103,9 @@ func isValidEnvironment(environment string) bool {
 	server := puppetConfigGet("agent", "server")
 	port := puppetConfigGet("agent", "masterport")
 
-	url := fmt.Sprintf("https://%s:%s/puppet/v3/status/test?environment=%s", server, port, environment)
+	log.Printf("Checking if environment '%s' exists on '%s'", environment, server)
+
+	url := fmt.Sprintf("https://%s:%s/puppet/v3/file_metadatas/plugins?environment=%s", server, port, environment)
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Panic(err)
@@ -102,19 +127,24 @@ func isValidEnvironment(environment string) bool {
 	return true
 }
 
+// Check to see if the locally configured puppet environment still exists.
+// If it doesn't, revert to the `production` envionment. Once the check
+// and any needed update is complete, run the puppet agent.
 func main() {
+	log.Print("Starting puppet-cron...")
 	environment := puppetConfigGet("agent", "environment")
+	puppetArgs := []string{"agent", "--no-daemonize", "--onetime"}
 
 	if environment == "" || !isValidEnvironment(environment) {
 		log.Printf("Environment %q is invalid; resetting", environment)
 		puppetConfigSet("agent", "environment", "production")
 	}
 
-	err := syscall.Exec(Puppet, []string{"puppet", "agent", "--no-daemonize", "--onetime"}, os.Environ())
-	if err != nil {
-		log.Fatal(err)
-	} else {
-		// WTF. exec should only return if it fails
-		log.Panic("syscall.Exec returned with no error")
+	if os.Getenv("PUPPET_CRON_DEBUG") != "" {
+		log.Printf("Current value of $PATH: %s", os.Getenv("PATH"))
 	}
+
+	log.Printf("Running 'puppet %s'", strings.Join(puppetArgs, " "))
+
+	callPuppet(puppetArgs)
 }
