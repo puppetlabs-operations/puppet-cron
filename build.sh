@@ -23,10 +23,12 @@ for target in $targets; do
   echo "----> Building project for: $target"
   GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -o $output
 
-  sha256sum $output |cut -d ' ' -f1 > $output-sha256sum.txt
-
   zip -j $output.zip $output > /dev/null 2>&1
   tar -czvf $output.tgz $output > /dev/null 2>&1
+
+  sha256sum $output |cut -d ' ' -f1 > $output-sha256sum.txt
+  sha256sum $output.zip |cut -d ' ' -f1 > $output-zip-sha256sum.txt
+  sha256sum $output.tgz |cut -d ' ' -f1 > $output-tgz-sha256sum.txt
 done
 
 echo "----> Build is complete. List of files at $release_path:"
