@@ -131,7 +131,7 @@ func isValidEnvironment(environment string) bool {
 // If it doesn't, revert to the `production` envionment. Once the check
 // and any needed update is complete, run the puppet agent.
 func main() {
-	log.Print("Starting puppet-cron...")
+	log.Print("Starting puppet-runner...")
 	environment := puppetConfigGet("agent", "environment")
 	puppetArgs := []string{"agent", "--no-daemonize", "--onetime"}
 
@@ -140,7 +140,7 @@ func main() {
 		puppetConfigSet("agent", "environment", "production")
 	}
 
-	if os.Getenv("PUPPET_CRON_DEBUG") != "" {
+	if os.Getenv("PUPPET_RUNNER_DEBUG") != "" {
 		log.Printf("Current value of $PATH: %s", os.Getenv("PATH"))
 	}
 
