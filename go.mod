@@ -1,3 +1,3 @@
-module github.com/puppetlabs-operations/puppet-runner
+module github.com/ploperations/puppet-runner
 
 go 1.16
