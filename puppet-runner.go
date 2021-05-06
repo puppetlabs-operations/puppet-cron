@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -128,20 +129,33 @@ func isValidEnvironment(environment string) bool {
 }
 
 // Check to see if the locally configured puppet environment still exists.
-// If it doesn't, revert to the `production` envionment. Once the check
-// and any needed update is complete, run the puppet agent.
+// If it doesn't, revert to the `production` envionment or the one specified
+// via `-env`. Once the check and any needed update is complete, run the puppet
+// agent.
 func main() {
+	puppetEnv := flag.String("env", "production", "The Puppet environment to fall back to")
+	debugFlag := flag.Bool("debug", false, "Enable debugging information")
+
+	flag.Parse()
+	cliArgs := flag.Args()
+
 	log.Print("Starting puppet-runner...")
 	environment := puppetConfigGet("agent", "environment")
-	puppetArgs := []string{"agent", "--no-daemonize", "--onetime"}
+
+	puppetArgs := []string{}
+	if len(cliArgs) > 0 {
+		puppetArgs = cliArgs
+	} else {
+		puppetArgs = []string{"agent", "--no-daemonize", "--onetime"}
+	}
 
 	if environment == "" || !isValidEnvironment(environment) {
 		log.Printf("Environment %q is invalid; resetting", environment)
-		puppetConfigSet("agent", "environment", "production")
+		puppetConfigSet("agent", "environment", *puppetEnv)
 	}
 
-	if os.Getenv("PUPPET_RUNNER_DEBUG") != "" {
-		log.Printf("Current value of $PATH: %s", os.Getenv("PATH"))
+	if *debugFlag || os.Getenv("PUPPET_RUNNER_DEBUG") != "" {
+		fmt.Printf("Current value of $PATH: %s\n\n", os.Getenv("PATH"))
 	}
 
 	log.Printf("Running 'puppet %s'", strings.Join(puppetArgs, " "))
