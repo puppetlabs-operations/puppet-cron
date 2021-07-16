@@ -135,6 +135,7 @@ func isValidEnvironment(environment string) bool {
 func main() {
 	puppetEnv := flag.String("env", "production", "The Puppet environment to fall back to")
 	debugFlag := flag.Bool("debug", false, "Enable debugging information")
+	envResetDelay := flag.Int("env-reset-delay", 0, "Delay in minutes before reverting to fall back environment")
 
 	flag.Parse()
 	cliArgs := flag.Args()
@@ -150,7 +151,12 @@ func main() {
 	}
 
 	if environment == "" || !isValidEnvironment(environment) {
-		log.Printf("Environment %q is invalid; resetting", environment)
+		if *envResetDelay != 0 {
+			log.Printf("Environment %q is invalid, resetting in %d minutes", environment, *envResetDelay)
+			time.Sleep(time.Duration(*envResetDelay) * time.Minute)
+		} else {
+			log.Printf("Environment %q is invalid; resetting now", environment)
+		}
 		puppetConfigSet("agent", "environment", *puppetEnv)
 	}
 
